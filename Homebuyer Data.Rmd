@@ -1,0 +1,62 @@
+---
+title: "NestQuest"
+author: "Saatvik Anantha"
+date: "2023-11-04"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(stringr)
+library(dplyr)
+library(tidyverse)
+
+Homebuyer_Data <- read.csv("HackUTD-2023-HomeBuyerInfo.csv")
+```
+
+```{r}
+Homebuyer_Data$LTV_Percent <- (Homebuyer_Data$LoanAmount/Homebuyer_Data$AppraisedValue)*100
+Homebuyer_Data$DTI_Percent <- ((Homebuyer_Data$CarPayment+Homebuyer_Data$CreditCardPayment+Homebuyer_Data$MonthlyMortgagePayment)/Homebuyer_Data$GrossMonthlyIncome)*100
+Homebuyer_Data$DTI_Percent <- round(Homebuyer_Data$DTI_Percent,2)
+Homebuyer_Data$FEDTI_Percent <- (Homebuyer_Data$MonthlyMortgagePayment/Homebuyer_Data$GrossMonthlyIncome)*100
+Homebuyer_Data$FEDTI_Percent <- round(Homebuyer_Data$FEDTI_Percent,2)
+Homebuyer_Data$Number <- Homebuyer_Data$ID
+Homebuyer_Data$Result <- "Approved"
+
+Homebuyer_Data_CreditScore <- Homebuyer_Data[Homebuyer_Data$CreditScore < 640,]
+Homebuyer_Data_LTV <- Homebuyer_Data[Homebuyer_Data$LTV_Percent < 80,]
+Homebuyer_Data_DTI <- Homebuyer_Data[Homebuyer_Data$DTI_Percent > 43,]
+Homebuyer_Data_FEDTI <- Homebuyer_Data[Homebuyer_Data$FEDTI_Percent <= 28,]
+
+HB1 <- Homebuyer_Data[Homebuyer_Data$CreditScore >= 640,]
+HB2 <- HB1[HB1$LTV_Percent >= 80,]
+HB3 <- HB2[HB2$DTI_Percent <= 43,]
+HB4 <- HB3[HB3$FEDTI_Percent > 28,]
+
+Homebuyer_Data_CreditScore$Result <- "Try to pay down your existing debts, especially high-interest credit card balances. Reducing your credit utilization (the amount of credit you're using compared to your credit limit) can have a positive impact on your credit score."
+Homebuyer_Data_LTV$Result <- "While your LTV is low, it's essential to have a separate emergency fund that can cover unexpected expenses such as home repairs, medical bills, or job loss. This will help you avoid financial strain in challenging times."
+Homebuyer_Data_DTI$Result <- "With a low DTI, you likely have extra funds available each month. Consider allocating these funds towards saving and investing. Build an emergency fund, contribute to retirement accounts, and invest in assets that can grow your wealth over time. If your DTI is higher than 36%, be very careful, as some lenders may not grant you a loan."
+Homebuyer_Data_FEDTI$Result <- "With a low FEDTI ratio, you may qualify for various mortgage programs, including conventional, FHA, or VA loans. Research these options to find the one that best fits your needs and financial situation."
+
+Homebuyer_Data1 <- full_join(Homebuyer_Data_CreditScore,Homebuyer_Data_LTV,by="ID")
+Homebuyer_Data2 <- full_join(Homebuyer_Data_DTI,Homebuyer_Data_FEDTI,by="ID")
+
+Homebuyer_Data1[is.na(Homebuyer_Data1)] <- " "
+Homebuyer_Data2[is.na(Homebuyer_Data2)] <- " "
+
+Homebuyer_Data1$Results <- paste(unique(Homebuyer_Data1$Result.x),unique(Homebuyer_Data1$Result.y),sep = " ")
+Homebuyer_Data2$Results <- paste(unique(Homebuyer_Data2$Result.x),unique(Homebuyer_Data2$Result.y),sep = " ")
+
+Homebuyer_Data_F <- full_join(Homebuyer_Data1,Homebuyer_Data2,by="ID")
+
+Homebuyer_Data_F[is.na(Homebuyer_Data_F)] <- " "
+
+Homebuyer_Data_F$Results <- paste(Homebuyer_Data_F$Results.x.x.x,Homebuyer_Data_F$Results.y.y.y,sep = " ")
+
+Data1 <- tibble(ID = Homebuyer_Data_F$ID, Result = Homebuyer_Data_F$Results)
+Data2 <- tibble(ID = HB4$ID, Result = HB4$Results)
+
+write.csv(Data1, file = "C:/Users/anant/Downloads/Disproved.csv", row.names = TRUE)
+write.csv(Data2, file = "C:/Users/anant/Downloads/Approved.csv", row.names = TRUE)
+```
